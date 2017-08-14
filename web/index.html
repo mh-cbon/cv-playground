@@ -1,0 +1,116 @@
+<html>
+<head>
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script src="node_modules/js-sha1/build/sha1.min.js"></script>
+<link rel="stylesheet" href="https://cdn.concisecss.com/concise.min.css">
+<link rel="stylesheet" href="https://cdn.concisecss.com/concise-utils/concise-utils.min.css">
+<link rel="stylesheet" href="https://cdn.concisecss.com/concise-ui/concise-ui.min.css">
+<style>
+.moment img {
+  height: 350px;
+}
+[container]{
+  max-width: 95%;
+}
+.moment img{
+  display: block;
+  max-height: 350px;
+  max-width: 150px;
+}
+#refresh{
+  float: right;
+}
+</style>
+</head>
+<body>
+
+  <main container>
+    <button class="-bordered -success" id="refresh">refresh</button>
+    <section id="p">
+    </section>
+  </main>
+
+<script>
+
+var container = $("#p")
+
+function beginWith(s) {
+  return function(i){
+    return i.substring(0, s.length)==s
+  }
+}
+
+function onlyUnique(value, index, self) {
+  return self.indexOf(value) === index;
+}
+
+function dirResults(items){
+  return items.map(function(i){
+    return i.match(/^([^/]+)[/]/)[0]
+  }).filter(onlyUnique)
+}
+
+function buildResult(items, name) {
+  var id = sha1(name);
+  var node = $("<div id="+id+" ></div>")
+  node.append(
+    $("<span class='_caps _bold'>"+name.substring(0,name.length-1)+"</span>")
+  )
+  var grid = $("<div grid='no-gutters'></div>")
+  items.filter(beginWith(name)).forEach(function(i){
+    var momentName = i.substring(name.length)
+    var moment = momentName.match(/^(.+)--/)[0]
+    var cnode = $("<div class=moment moment="+moment+" column></div>")
+    cnode.append(
+      $("<span class='moment-name'>"+moment.replace(/--$/,"")+"</span>")
+    )
+    var src = "/cwd/"+i+"?r="+(Date.now())+"";
+    cnode.append(
+      $("<a href='"+src+"' target='_blank'><img src='"+src+"' /></a>")
+    )
+    grid.append(cnode)
+  })
+  items.filter(beginWith(name)).forEach(function(i){
+    var momentName = i.substring(name.length)
+    var moment = momentName.match(/^(.+)--/)[0]
+    var cnode = grid.find("[moment='"+moment+"']");
+    if (moment.match(/^src/)) {
+      cnode.prependTo(grid)
+    } else if (moment.match(/^dst/)) {
+      cnode.appendTo(grid)
+    } else {
+      var index = moment.match(/^înt-([0-9]+)/)
+      index = parseInt(index)
+      if (index==1) {
+        cnode.insertAfter(grid.find("[moment^='src--']").first())
+      } else {
+        cnode.insertAfter(grid.find("[moment^='int-"+(index-1)+"--']").first())
+      }
+    }
+  })
+  node.append(grid)
+  return node
+}
+
+function getImages(done) {
+  $.get("/files", function(res){
+    dirResults(res).forEach(function(dir){
+      var id = sha1(dir);
+      var node = $("#" + id)
+      if (node.length>0) {
+        node.remove()
+      }
+      container.append(buildResult(res, dir))
+    })
+    done && done()
+  })
+}
+
+$("#refresh").on("click", function(){
+  getImages()
+})
+getImages()
+
+</script>
+</body>
+</html>

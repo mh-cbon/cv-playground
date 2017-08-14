@@ -1,0 +1,7 @@
+/cwd/**
+/input/**
+!/cwd/README.md
+!/input/README.md
+/web/node_modules/**
+!/web/node_modules/js-sha1/build/sha1.min.js
+*.pyc
